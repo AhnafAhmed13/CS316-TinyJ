@@ -118,6 +118,16 @@ public final class Parser {
     TJ.output.incTreeDepth();
 
     /* <singleVarDecl> ::= IDENTIFIER { '[' ']' } [ = <expr3> ] */
+    accept(IDENT);
+    while (getCurrentToken() == LBRACKET) {
+      nextToken();
+      accept(RBRACKET);
+    }
+    if (getCurrentToken() == LBRACKET) {
+      accept(BECOMES);
+      expr3();
+      accept(RBRACKET);
+    }
 
     TJ.output.decTreeDepth();
   }
@@ -150,9 +160,22 @@ public final class Parser {
     TJ.output.printSymbol(NTmethodDecl);
     TJ.output.incTreeDepth();
 
-    /* <metodDecl> ::= static ( void | int {'[' ']'})  IDENTIFIER
+    /* <methodDecl> ::= static ( void | int {'[' ']'})  IDENTIFIER
      *                    '(' <parameterDecList> ')' <compoundStmt>
      */
+    accept(STATIC);
+    if (getCurrentToken() == INT) {
+      while (getCurrentToken() == LBRACKET) {
+        nextToken();
+        accept(RBRACKET);
+      }
+    }
+    else accept(VOID);
+    accept(IDENT);
+    accept(LPAREN);
+    parameterDeclList();
+    accept(RPAREN);
+    compoundStmt();
 
     TJ.output.decTreeDepth();
   }
