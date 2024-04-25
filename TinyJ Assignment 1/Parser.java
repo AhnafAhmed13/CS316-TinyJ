@@ -1,3 +1,12 @@
+/*
+ * Name: Ahnaf Ahmed
+ * CS316 Spring 2024
+ * Prof Tat Yung Kong
+ * TinyJ Assignment 1
+ * Parser.java
+ * 
+ */
+
 package TJ1asn;
 
 import static TJlexer.LexicalAnalyzer.getCurrentToken;
