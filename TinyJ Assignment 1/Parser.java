@@ -123,10 +123,9 @@ public final class Parser {
       nextToken();
       accept(RBRACKET);
     }
-    if (getCurrentToken() == LBRACKET) {
-      accept(BECOMES);
+    if (getCurrentToken() == BECOMES) {
+      nextToken();
       expr3();
-      accept(RBRACKET);
     }
 
     TJ.output.decTreeDepth();
@@ -165,12 +164,16 @@ public final class Parser {
      */
     accept(STATIC);
     if (getCurrentToken() == INT) {
+      nextToken();
       while (getCurrentToken() == LBRACKET) {
         nextToken();
         accept(RBRACKET);
       }
     }
-    else accept(VOID);
+    else if (getCurrentToken() == VOID) {
+      nextToken();
+    }
+    else throw new SourceFileErrorException("\"void\" or \"int\" expected");
     accept(IDENT);
     accept(LPAREN);
     parameterDeclList();
@@ -221,6 +224,11 @@ public final class Parser {
     TJ.output.incTreeDepth();
 
     /* <compoundStmt> ::= '{' { <statement> } '}' */
+    accept(LBRACE);
+    while(getCurrentToken() != RBRACE) {
+      statement();
+    }
+    accept(RBRACE);
 
     TJ.output.decTreeDepth();
   }
@@ -258,6 +266,21 @@ public final class Parser {
     TJ.output.incTreeDepth();
 
     /* <assignmentOrInvoc> ::= IDENTIFIER ( { '['<expr3>']' } = <expr3> ; | <argumentList> ; ) */
+    accept(IDENT);
+    if (getCurrentToken() != LPAREN) {
+      while(getCurrentToken() != BECOMES) {
+        accept(LBRACKET);
+        expr3();
+        accept(RBRACKET);
+      }
+      nextToken();
+      expr3();
+      accept(SEMICOLON);
+    }
+    else {
+      argumentList();
+      accept(SEMICOLON);
+    }
 
     TJ.output.decTreeDepth();
   }
@@ -269,6 +292,15 @@ public final class Parser {
      TJ.output.incTreeDepth();
 
      /* <argumentList> ::= '('[<expr3>{,<expr3>}]')' */
+     accept(LPAREN);
+     if (getCurrentToken() != RPAREN) {
+        expr3();
+        while (getCurrentToken() == COMMA) {
+          nextToken();
+          expr3();
+        }
+     }
+     accept(RPAREN);
 
      TJ.output.decTreeDepth();
   }
@@ -301,6 +333,11 @@ public final class Parser {
     TJ.output.incTreeDepth();
 
     /* <whileStmt> ::= while '(' <expr7> ')' <statement> */
+    accept(WHILE);
+    accept(LPAREN);
+    expr7();
+    accept(RPAREN);
+    statement();
 
     TJ.output.decTreeDepth();
   }
@@ -321,10 +358,24 @@ public final class Parser {
       /* <outputStmt> ::= System . out . (   print '(' <printArgument> ')' ;
                                            | println '(' [<printArgument>] ')' ;
                                           )
-
+      */
+      case PRINT: nextToken();
+                          accept(LPAREN);
+                          printArgument();
+                          accept(RPAREN);
+                          accept(SEMICOLON);
+                          break;
+      case PRINTLN: nextToken();
+                            accept(LPAREN);
+                            while(getCurrentToken() != RPAREN) {
+                              printArgument();
+                            }
+                            accept(RPAREN);
+                            accept(SEMICOLON);
+                            break;
       default: throw new SourceFileErrorException("print() or println() expected, not "
                               + getCurrentToken().symbolRepresentationForOutputFile);
-      */
+      
 
     }
 
@@ -338,7 +389,11 @@ public final class Parser {
     TJ.output.incTreeDepth();
 
     /* <printArgument> ::= CHARSTRING | <expr3> */
-
+    if (getCurrentToken() != CHARSTRING) {
+      expr3();
+    }
+    else if (getCurrentToken() == CHARSTRING) accept(CHARSTRING);
+    else throw new SourceFileErrorException("\"CHARACTER STRING LITERAL\" or \"<expr3>\" expected");
     TJ.output.decTreeDepth();
   }
 
@@ -349,6 +404,11 @@ public final class Parser {
     TJ.output.incTreeDepth();
 
     /* <expr7> ::= <expr6> { '|' <expr6> } */
+    expr6();
+    while (getCurrentToken() == OR) {
+      nextToken();
+      expr6();
+    }
 
     TJ.output.decTreeDepth();
   }
@@ -360,6 +420,11 @@ public final class Parser {
     TJ.output.incTreeDepth();
 
     /* <expr6> ::= <expr5> { & <expr5> } */
+    expr5();
+    while (getCurrentToken() == AND) {
+      nextToken();
+      expr5();
+    }
 
     TJ.output.decTreeDepth();
   }
@@ -371,6 +436,14 @@ public final class Parser {
     TJ.output.incTreeDepth();
 
     /* <expr5> ::= <expr4> {(== | !=) <expr4> } */
+    expr4();
+    while (   getCurrentToken() == EQ
+           || getCurrentToken() == NE) {
+
+      nextToken();
+
+      expr4();
+    }
 
     TJ.output.decTreeDepth();
   }
@@ -382,6 +455,16 @@ public final class Parser {
     TJ.output.incTreeDepth();
 
     /* <expr4> ::= <expr3> [(> | < | >= | <=) <expr3> ] */
+    expr3();
+    if (   getCurrentToken() == GT
+        || getCurrentToken() == LT
+        || getCurrentToken() == GE
+        || getCurrentToken() == LE) {
+
+      nextToken();
+
+      expr3();
+    }
 
     TJ.output.decTreeDepth();
   }
@@ -393,6 +476,14 @@ public final class Parser {
     TJ.output.incTreeDepth();
 
     /* <expr3> ::= <expr2> {(+ | -) <expr2> } */
+    expr2();
+    while (   getCurrentToken() == PLUS
+           || getCurrentToken() == MINUS) {
+
+      nextToken();
+
+      expr2();
+    }
 
     TJ.output.decTreeDepth();
   }
@@ -428,10 +519,46 @@ public final class Parser {
       /* <expr1> ::= '(' <expr7> ')' | (+|-|!) <expr1> | UNSIGNEDINT | null
                   |   new int '[' <expr3> ']' { '[' ']' }
                   |   IDENTIFIER ( . nextInt  '(' ')' | [<argumentList>] {'[' <expr3> ']'} )
-
+      */
+      case LPAREN: nextToken();
+                           expr7();
+                           accept(RPAREN);
+                           break;
+      case PLUS: case MINUS: case NOT: nextToken();
+                                                expr1();
+                                                break;
+      case UNSIGNEDINT: accept(UNSIGNEDINT); break;
+      case NULL: accept(NULL); break;
+      case NEW: nextToken();
+                        accept(INT);
+                        accept(LBRACKET);
+                        expr3();
+                        accept(RBRACKET);
+                        while(getCurrentToken() == LBRACKET) {
+                          nextToken();
+                          accept(RBRACKET);
+                        }
+                        break;
+      case IDENT: nextToken();
+                          if (getCurrentToken() == DOT) {
+                            nextToken();
+                            accept(NEXTINT);
+                            accept(LPAREN);
+                            accept(RPAREN);
+                          }
+                          else {
+                            if (getCurrentToken() == LPAREN) {
+                              argumentList();
+                            }
+                            while (getCurrentToken() == LBRACKET) {
+                              nextToken();
+                              expr3();
+                              accept(RBRACKET);
+                            }
+                          }
+                          break;
       default: throw new SourceFileErrorException("Malformed expression");
 
-      */
     }
 
     TJ.output.decTreeDepth();
