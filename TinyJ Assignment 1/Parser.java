@@ -179,10 +179,9 @@ public final class Parser {
         accept(RBRACKET);
       }
     }
-    else if (getCurrentToken() == VOID) {
-      nextToken();
+    else {
+      accept(VOID);
     }
-    else throw new SourceFileErrorException("\"void\" or \"int\" expected");
     accept(IDENT);
     accept(LPAREN);
     parameterDeclList();
@@ -277,12 +276,12 @@ public final class Parser {
     /* <assignmentOrInvoc> ::= IDENTIFIER ( { '['<expr3>']' } = <expr3> ; | <argumentList> ; ) */
     accept(IDENT);
     if (getCurrentToken() != LPAREN) {
-      while(getCurrentToken() != BECOMES) {
-        accept(LBRACKET);
+      while(getCurrentToken() == LBRACKET) {
+        nextToken();
         expr3();
         accept(RBRACKET);
       }
-      nextToken();
+      accept(BECOMES);
       expr3();
       accept(SEMICOLON);
     }
@@ -376,7 +375,7 @@ public final class Parser {
                           break;
       case PRINTLN: nextToken();
                             accept(LPAREN);
-                            while(getCurrentToken() != RPAREN) {
+                            if (getCurrentToken() != RPAREN) {
                               printArgument();
                             }
                             accept(RPAREN);
@@ -398,11 +397,13 @@ public final class Parser {
     TJ.output.incTreeDepth();
 
     /* <printArgument> ::= CHARSTRING | <expr3> */
-    if (getCurrentToken() != CHARSTRING) {
-      expr3();
+    if (getCurrentToken() == CHARSTRING) {
+      nextToken();
     }
-    else if (getCurrentToken() == CHARSTRING) accept(CHARSTRING);
-    else throw new SourceFileErrorException("\"CHARACTER STRING LITERAL\" or \"<expr3>\" expected");
+    else {
+      expr3();  
+    }
+    
     TJ.output.decTreeDepth();
   }
 
@@ -536,8 +537,7 @@ public final class Parser {
       case PLUS: case MINUS: case NOT: nextToken();
                                                 expr1();
                                                 break;
-      case UNSIGNEDINT: accept(UNSIGNEDINT); break;
-      case NULL: accept(NULL); break;
+      case UNSIGNEDINT: case NULL: nextToken(); break;
       case NEW: nextToken();
                         accept(INT);
                         accept(LBRACKET);
